@@ -1,0 +1,5 @@
+python-telegram-bot==22.8
+openai==2.47.0
+python-dotenv==1.2.2
+faster-whisper
+piper-tts
