@@ -1,14 +1,14 @@
+"""Manual OpenAI smoke check; run this file directly when network is available."""
+
 from ai_engine import ask_ai
 
 
-history = [
-    ("user", "Мне сегодня тяжело и я хочу поговорить")
-]
+def main():
+    history = [("user", "Мне сегодня тяжело и я хочу поговорить")]
+    print("Отправляю запрос...")
+    print("Ответ:")
+    print(ask_ai(history))
 
 
-print("Отправляю запрос...")
-
-answer = ask_ai(history)
-
-print("Ответ:")
-print(answer)
+if __name__ == "__main__":
+    main()

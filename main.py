@@ -13,13 +13,15 @@ from telegram import (
 from memory import save_message, get_history
 from telegram.ext import (
     Application,
+    ApplicationHandlerStop,
     CallbackQueryHandler,
     CommandHandler,
     MessageHandler,
+    TypeHandler,
     filters
 )
 
-from config import ADMIN_ID, BOT_TOKEN, BOT_USERNAME
+from config import ADMIN_ID, BOT_TOKEN, BOT_USERNAME, RATE_LIMIT_REQUESTS_PER_MINUTE
 
 from database import (
     create_tables,
@@ -45,6 +47,7 @@ from privacy_filter import BLOCKED_RESPONSE, is_internal_info_request
 from personal_memory import MEMORY_LABELS, learn_from_message
 from database import clear_user_memories, get_user_memories
 from voice_service import VoiceServiceError, synthesize_voice, transcribe
+from rate_limiter import PerUserRateLimiter
 
 
 logging.basicConfig(
@@ -85,6 +88,31 @@ ADMIN_KEYBOARD = ReplyKeyboardMarkup(
     resize_keyboard=True,
     is_persistent=True
 )
+
+
+incoming_rate_limiter = PerUserRateLimiter(RATE_LIMIT_REQUESTS_PER_MINUTE)
+
+
+async def limit_incoming_updates(update: Update, context):
+    """Drop a user's excess updates before any expensive handler runs."""
+    user = update.effective_user
+    if not user or incoming_rate_limiter.allow(user.id):
+        return
+
+    if not incoming_rate_limiter.should_notify(user.id):
+        raise ApplicationHandlerStop
+
+    if update.callback_query:
+        await update.callback_query.answer(
+            "Слишком много запросов. Подожди минуту.", show_alert=True
+        )
+    elif update.effective_message:
+        await update.effective_message.reply_text(
+            "⚠️ Слишком много запросов. Подожди минуту и попробуй снова."
+        )
+
+    logging.warning("Лимит 40 запросов в минуту: user_id=%s", user.id)
+    raise ApplicationHandlerStop
 
 
 def keyboard_for(user_id):
@@ -874,6 +902,11 @@ app = Application.builder() \
 app.add_error_handler(
     error_handler
 )
+
+
+# Group -1 runs before every other handler. ApplicationHandlerStop prevents
+# commands, text, callbacks, locations and voice messages from reaching them.
+app.add_handler(TypeHandler(Update, limit_incoming_updates), group=-1)
 
 
 

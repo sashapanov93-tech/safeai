@@ -53,3 +53,11 @@ Thumbs.db
 *.tmp
 *.bak
 *~
+
+# ==========================
+# Virtual environments
+# ==========================
+venv/
+venv_old/
+.venv/
+env/
