@@ -1120,6 +1120,22 @@ app.add_handler(
 
 
 
-print("SafeAI запущен 🚀")
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", "10000"))
+    render_url = os.getenv("RENDER_EXTERNAL_URL")
 
-app.run_polling()
+    if render_url:
+        webhook_url = f"{render_url}/telegram"
+
+        print(f"SafeAI запускается через webhook: {webhook_url}")
+
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=port,
+            url_path="telegram",
+            webhook_url=webhook_url,
+            allowed_updates=Update.ALL_TYPES,
+        )
+    else:
+        print("SafeAI запущен локально через polling 🚀")
+        app.run_polling()
