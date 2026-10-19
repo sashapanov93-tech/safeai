@@ -120,6 +120,7 @@ Implemented or planned protections include:
 safeai/
 │
 ├── main.py
+├── web_server.py
 ├── ai_engine.py
 ├── ai_router.py
 ├── ai_core.py
@@ -176,6 +177,7 @@ BOT_TOKEN=
 AI_API_KEY=
 ADMIN_ID=
 RATE_LIMIT_REQUESTS_PER_MINUTE=40
+TELEGRAM_WEBHOOK_SECRET=
 ```
 
 **Never commit ****`.env`**** to Git.**
@@ -225,6 +227,35 @@ Expected output:
 ```text
 SafeAI запущен 🚀
 ```
+
+---
+
+## 🌐 Deployment on Render and monitoring
+
+`main.py` detects `RENDER_EXTERNAL_URL` and switches to webhook mode. Instead of
+`Application.run_webhook`, the bot is served by `web_server.py`, which exposes
+three routes on the same port:
+
+| Route       | Method    | Purpose                                                |
+| ----------- | --------- | ------------------------------------------------------ |
+| `/telegram` | POST      | Telegram updates (webhook)                             |
+| `/health`   | GET, HEAD | Health-check for monitoring (`200 OK` while alive)     |
+| `/`         | GET, HEAD | Human-readable stub instead of tornado's default `404` |
+
+Why this matters:
+
+* `Application.run_webhook` serves **only** the webhook path, so any GET request
+  (e.g. from UptimeRobot) answers `405` and the monitor reports the bot as down.
+* A Free Render web service *spins down* after 15 minutes without inbound
+  traffic and *spins up* on the next request. Pinging `/health` every 5 minutes
+  with UptimeRobot keeps the bot online.
+* Render grants **750 Free instance hours per workspace per calendar month**.
+  A service kept awake 24/7 consumes ~720 of them, so watch how many Free
+  services you keep awake this way — see
+  [render.com/docs/free](https://render.com/docs/free).
+
+The health endpoint answers `HEAD` as well, because UptimeRobot uses `HEAD` by
+default. Point the monitor at `https://<service>.onrender.com/health`.
 
 ---
 

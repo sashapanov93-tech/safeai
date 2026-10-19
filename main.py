@@ -1,7 +1,10 @@
+import asyncio
 import logging
 import os
 import tempfile
 from datetime import datetime
+
+from web_server import serve_webhook
 
 from telegram import (
     InlineKeyboardButton,
@@ -1129,12 +1132,12 @@ if __name__ == "__main__":
 
         print(f"SafeAI запускается через webhook: {webhook_url}")
 
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=port,
-            url_path="telegram",
-            webhook_url=webhook_url,
-            allowed_updates=Update.ALL_TYPES,
+        asyncio.run(
+            serve_webhook(
+                app,
+                port=port,
+                webhook_url=webhook_url
+            )
         )
     else:
         print("SafeAI запущен локально через polling 🚀")
